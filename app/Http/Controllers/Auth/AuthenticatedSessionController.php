@@ -14,34 +14,46 @@ class AuthenticatedSessionController extends Controller
     /**
      * Display the login view.
      */
-    public function create(): View
+   public function create()
     {
-        return view('auth.login');
+        return view('auth.login'); // Form login cho admin
+    }
+
+      /**
+     * Xử lý đăng nhập
+     */
+    public function store(Request $request)
+    {
+        $request->validate([
+            'email'    => 'required|email',
+            'password' => 'required',
+        ]);
+
+        // ✅ Dùng guard mặc định (web) → bảng `users`
+        if (Auth::attempt([
+            'email' => $request->email,
+            'password' => $request->password,
+        ])) {
+            $request->session()->regenerate();
+            return redirect()->intended('/dashboard'); // hoặc trang bạn muốn
+        }
+
+        return back()->withErrors([
+            'email' => 'These credentials do not match our records.',
+        ])->onlyInput('email');
     }
 
     /**
-     * Handle an incoming authentication request.
+     * Xử lý logout
      */
-    public function store(LoginRequest $request): RedirectResponse
+    public function destroy(Request $request)
     {
-        $request->authenticate();
-
-        $request->session()->regenerate();
-
-        return redirect()->intended(route('dashboard', absolute: false));
-    }
-
-    /**
-     * Destroy an authenticated session.
-     */
-    public function destroy(Request $request): RedirectResponse
-    {
-        Auth::guard('web')->logout();
+        // ✅ Logout guard mặc định
+        Auth::logout();
 
         $request->session()->invalidate();
-
         $request->session()->regenerateToken();
 
-        return redirect('/');
+        return redirect('/login'); // hoặc trang public
     }
 }
